@@ -1,0 +1,21 @@
+{
+  "name": "Impuls System",
+  "short_name": "Impuls",
+  "description": "Meditativer Webraum zur Selbstreflexion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#4a90e2",
+  "icons": [
+    {
+      "src": "/icon-192.jpg",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.jpg",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
