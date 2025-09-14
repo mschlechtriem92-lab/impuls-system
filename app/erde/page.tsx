@@ -1,47 +1,35 @@
-"use client"
+'use client'
 
-import { useRef, useEffect, useState } from "react"
-import ErdeBackground from "@/components/ErdeBackground"
-import ErdeSphere from "@/components/ErdeSphere"
-import ErdeImpulseButton from "@/components/ErdeImpulseButton"
-import Navigation from "@/components/Navigation"
-import KICompanion from "@/components/KICompanion"
-import EnhancedWaves from "@/components/EnhancedWaves"
+import ErdeBackground from '@components/ErdeBackground'
+import ErdeSphere from '@components/ErdeSphere'
+import ErdeImpulseButton from '@components/ErdeImpulseButton'
+import Navigation from '@components/Navigation'
+import KICompanion from '@components/KICompanion'
 
-export default function ErdeRoom() {
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const [companionVisible, setCompanionVisible] = useState(false)
 
-  const playImpulse = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch(console.error)
-    }
-
-    window.dispatchEvent(new CustomEvent("impuls-activated"))
+export default function ErdePage() {
+  const handleImpulseClick = () => {
+    console.log('Impulse Erde aktiviert')
+    // Optional: Trigger KI, Animation, Modal etc.
   }
-
-  const handleCompanionOpen = () => {
-    setCompanionVisible(true)
-  }
-
-  useEffect(() => {
-    // Preload audio
-    if (audioRef.current) {
-      audioRef.current.load()
-    }
-  }, [])
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <main className="relative w-full h-screen overflow-hidden bg-black text-white">
       <ErdeBackground />
-      <EnhancedWaves room="erde" />
-      <ErdeSphere />
-      <ErdeImpulseButton onClick={playImpulse} onCompanionOpen={handleCompanionOpen} />
-      <KICompanion mode="erde" isVisible={companionVisible} onToggle={setCompanionVisible} />
+
       <Navigation currentRoom="erde" />
 
-      <audio ref={audioRef} src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Erde-sound-7lodb4OAUGLY924lE794SJRbVbGX3f.mp3" preload="auto" className="hidden" />
-    </div>
+      <section className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <ErdeSphere />
+      </section>
+
+      <section className="absolute bottom-12 left-1/2 transform -translate-x-1/2 pointer-events-auto z-10">
+        <ErdeImpulseButton onClick={handleImpulseClick} />
+      </section>
+
+      <section className="absolute top-0 right-0 m-4 z-20">
+        <KICompanion mode="erde" isVisible={true} />
+      </section>
+    </main>
   )
 }
