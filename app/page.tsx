@@ -1,49 +1,52 @@
-"use client"
+'use client'
 
-import { useRef, useEffect, useState } from "react"
-import ImpulsRoom from "../components/ImpulsRoom"
-import FrequencyRing from "../components/FrequencyRing"
-import GalaxyBackground from "../components/GalaxyBackground"
-import ImpulseButton from "../components/ImpulseButton"
-import Navigation from "../components/Navigation"
-import KICompanion from "../components/KICompanion"
-import ElementSymbols from "../components/ElementSymbols"
-import EnhancedWaves from "../components/EnhancedWaves"
+import { useRef, useState } from 'react'
+import Navigation from '../components/Navigation'
+import KICompanion from '../components/KICompanion'
+import ImpulseButton from '../components/ImpulseButton'
+import GalaxyBackground from '../components/GalaxyBackground'
+import EnhancedWaves from '../components/EnhancedWaves'
 
-
-export default function App() {
+export default function ImpulsPage() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [companionVisible, setCompanionVisible] = useState(false)
 
-  const playImpulse = () => {
+  const handleImpulseClick = () => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0
-      audioRef.current.play().catch(console.error)
+      const playPromise = audioRef.current.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(err => console.warn("Audio konnte nicht abgespielt werden:", err))
+      }
     }
-  }
-
-  const handleCompanionOpen = () => {
     setCompanionVisible(true)
   }
 
-  useEffect(() => {
-    // Preload audio
-    if (audioRef.current) {
-      audioRef.current.load()
-    }
-  }, [])
-
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <main className="relative w-full h-screen overflow-hidden bg-black text-white">
       <GalaxyBackground />
       <EnhancedWaves room="main" />
-      <ImpulsRoom />
-      <FrequencyRing />
-      <ImpulseButton onClick={playImpulse} onCompanionOpen={handleCompanionOpen} />
-      <KICompanion mode="main" isVisible={companionVisible} onToggle={setCompanionVisible} />
+
+      <section className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+        <ImpulseButton onClick={handleImpulseClick} />
+      </section>
+
+      <section className="absolute top-4 left-4 flex flex-row space-x-4 z-30">
+        <KICompanion
+          mode="main"
+          isVisible={companionVisible}
+          onToggle={setCompanionVisible}
+        />
+      </section>
+
       <Navigation currentRoom="main" />
 
-      <audio ref={audioRef} src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/impuls-jtK3vdvo8RoFuhkJcpZa1dcLMbIOpM.mp3" preload="auto" className="hidden" />
-    </div>
+      <audio
+        ref={audioRef}
+        src="/assets/rooms/Impuls/Impuls.mp3"
+        preload="auto"
+        className="hidden"
+      />
+    </main>
   )
 }

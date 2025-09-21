@@ -10,13 +10,10 @@ interface KICompanionProps {
   onToggle?: (visible: boolean) => void
 }
 
-const prompts: Record<ArchetypeMode, {
-  welcome: string
-  reflection: string
-  impulse: string
-  color: string
-  hoverColor: string
-}> = {
+const prompts: Record<
+  ArchetypeMode,
+  { welcome: string; reflection: string; impulse: string; color: string; hoverColor: string }
+> = {
   main: {
     welcome: 'Willkommen im Impuls-Raum. Welcher Impuls ruft dich?',
     reflection: 'Was bewegt dich in diesem Moment?',
@@ -32,36 +29,36 @@ const prompts: Record<ArchetypeMode, {
     hoverColor: 'hover:from-green-500/80 hover:to-emerald-600/80',
   },
   wasser: {
-    welcome: 'Fließe mit dem Raum Wasser. Was bewegt dich?',
-    reflection: 'Welche Strömungen nimmst du wahr?',
-    impulse: 'Was möchtest du fließen lassen?',
-    color: 'from-cyan-600/80 to-teal-700/80',
-    hoverColor: 'hover:from-cyan-500/80 hover:to-teal-600/80',
+    welcome: 'Willkommen im Raum Wasser. Welche Strömungen spürst du?',
+    reflection: 'Was fließt gerade in dir?',
+    impulse: 'Welchen Impuls möchtest du folgen?',
+    color: 'from-cyan-600/80 to-blue-500/80',
+    hoverColor: 'hover:from-cyan-500/80 hover:to-blue-400/80',
   },
   feuer: {
-    welcome: 'Entfache den Raum Feuer. Was brennt in dir?',
-    reflection: 'Welche Leidenschaft lodert?',
-    impulse: 'Was möchtest du entzünden?',
-    color: 'from-red-600/80 to-orange-700/80',
-    hoverColor: 'hover:from-red-500/80 hover:to-orange-600/80',
+    welcome: 'Willkommen im Raum Feuer. Was entflammt dein Herz?',
+    reflection: 'Welche Leidenschaft spürst du?',
+    impulse: 'Welches Feuer möchtest du entfachen?',
+    color: 'from-red-600/80 to-orange-500/80',
+    hoverColor: 'hover:from-red-500/80 hover:to-orange-400/80',
   },
   luft: {
-    welcome: 'Atme im Raum Luft. Was trägt dich?',
-    reflection: 'Welche Gedanken schweben?',
-    impulse: 'Was möchtest du befreien?',
-    color: 'from-sky-600/80 to-indigo-700/80',
-    hoverColor: 'hover:from-sky-500/80 hover:to-indigo-600/80',
+    welcome: 'Willkommen im Raum Luft. Welche Gedanken schweben?',
+    reflection: 'Wohin trägt dich der Wind?',
+    impulse: 'Welchen Impuls möchtest du folgen?',
+    color: 'from-sky-600/80 to-indigo-500/80',
+    hoverColor: 'hover:from-sky-500/80 hover:to-indigo-400/80',
   },
   aether: {
-    welcome: 'Verbinde dich mit dem Raum Äther. Was ist möglich?',
-    reflection: 'Welche Visionen siehst du?',
-    impulse: 'Was möchtest du manifestieren?',
-    color: 'from-pink-600/80 to-violet-700/80',
-    hoverColor: 'hover:from-pink-500/80 hover:to-violet-600/80',
+    welcome: 'Willkommen im Raum Äther. Was verbindet dich?',
+    reflection: 'Welche Visionen spürst du?',
+    impulse: 'Welchen Impuls möchtest du manifestieren?',
+    color: 'from-purple-600/80 to-pink-500/80',
+    hoverColor: 'hover:from-purple-500/80 hover:to-pink-400/80',
   },
 }
 
-export default function KICompanion({ mode, isVisible = false, onToggle }: KICompanionProps) {
+export default function KICompanion({ mode, isVisible = true, onToggle }: KICompanionProps) {
   const [localVisible, setLocalVisible] = useState(isVisible)
   const [reflection, setReflection] = useState('')
 
@@ -74,39 +71,32 @@ export default function KICompanion({ mode, isVisible = false, onToggle }: KICom
   }
 
   return (
-    <div className="absolute top-8 left-8 z-[15] max-w-md">
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 max-w-md w-full px-2">
+      {/* Toggle Button */}
       {!onToggle && (
         <button
           onClick={handleToggle}
-          className="mb-4 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/80 hover:bg-white/20 transition-all duration-300"
+          className="px-4 py-2 bg-white/10 text-white/80 rounded-full backdrop-blur-md"
         >
           {visible ? 'Begleiter verbergen' : 'Begleiter öffnen'}
         </button>
       )}
 
+      {/* Companion Window */}
       {visible && (
-        <div className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 animate-in slide-in-from-left duration-300">
-          <div className="space-y-4">
-            <p className="text-white/90 text-sm leading-relaxed">{currentPrompts.welcome}</p>
-
-            <div className="space-y-2">
-              <label className="text-white/70 text-xs uppercase tracking-wide">
-                {currentPrompts.reflection}
-              </label>
-              <textarea
-                value={reflection}
-                onChange={(e) => setReflection(e.target.value)}
-                className="w-full h-20 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/90 text-sm placeholder-white/40 resize-none focus:outline-none focus:border-white/30 transition-colors"
-                placeholder="Deine Gedanken..."
-              />
-            </div>
-
-            <button
-              className={`w-full py-2 bg-gradient-to-r ${currentPrompts.color} text-white text-sm rounded-lg ${currentPrompts.hoverColor} transition-all duration-300`}
-            >
-              {currentPrompts.impulse}
-            </button>
-          </div>
+        <div className="w-full bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col space-y-3 animate-in slide-in-from-top duration-300">
+          <p className="text-white/90 text-sm">{currentPrompts.welcome}</p>
+          <textarea
+            value={reflection}
+            onChange={(e) => setReflection(e.target.value)}
+            placeholder={currentPrompts.reflection}
+            className="w-full h-20 bg-white/5 rounded-lg p-2 text-white/90 resize-none focus:outline-none focus:ring-2 focus:ring-white/30"
+          />
+          <button
+            className={`w-full py-2 rounded-lg bg-gradient-to-r ${currentPrompts.color} ${currentPrompts.hoverColor} text-white font-semibold`}
+          >
+            {currentPrompts.impulse}
+          </button>
         </div>
       )}
     </div>
