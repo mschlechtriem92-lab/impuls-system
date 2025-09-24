@@ -1,8 +1,8 @@
-'use client'
+﻿'use client'
 
 import EnhancedWaves from '@/components/EnhancedWaves'
-import Background from '@/components/Background'
-import AudioPlayer from '@/components/AudioPlayer'
+import GalaxyBackground from '../components/GalaxyBackground'
+
 
 export default function ImpulsPage() {
     return (
