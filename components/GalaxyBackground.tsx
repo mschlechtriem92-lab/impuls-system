@@ -9,6 +9,14 @@ interface RoomBackgroundProps {
   roomImage?: string
 }
 
+interface Particle {
+  x: number
+  y: number
+  size: number
+  speed: number
+  opacity: number
+}
+
 export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
@@ -69,16 +77,13 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    const particles: Array<{ x: number; y: number; size: number; speed: number; opacity: number }> = []
-    for (let i = 0; i < 200; i++) {
-      particles.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight,
-        size: Math.random() * 2 + 0.5,
-        speed: Math.random() * 0.5 + 0.1,
-        opacity: Math.random() * 0.8 + 0.2,
-      })
-    }
+    const particles: Particle[] = Array.from({ length: 200 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      size: Math.random() * 2 + 0.5,
+      speed: Math.random() * 0.5 + 0.1,
+      opacity: Math.random() * 0.8 + 0.2,
+    }))
 
     let raf = 0
     const animate = () => {

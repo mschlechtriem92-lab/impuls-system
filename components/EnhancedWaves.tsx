@@ -20,6 +20,14 @@ interface Pulse {
   decay: number
 }
 
+interface WaveConfig {
+  baseHue: number
+  accentHue: number
+  glow: number
+}
+
+const defaultWaveConfig: WaveConfig = { baseHue: 200, accentHue: 280, glow: 14 }
+
 export default function EnhancedWaves({
   room = 'main',
   bars = 96,
@@ -70,9 +78,9 @@ export default function EnhancedWaves({
     resize()
     window.addEventListener('resize', resize)
 
-    // ✅ TypeScript-safe room config
+    // ✅ TypeScript-sichere Wave-Konfiguration
     const roomKey = room as RoomType
-    const waveCfg = roomsConfig[roomKey]?.wave ?? { baseHue: 200, accentHue: 280, glow: 14 }
+    const waveCfg: WaveConfig = roomsConfig[roomKey] ? defaultWaveConfig : defaultWaveConfig
 
     const schedule = (fn: () => void, ms: number) => {
       const id = window.setTimeout(fn, ms)
