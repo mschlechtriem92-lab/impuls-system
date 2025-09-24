@@ -1,16 +1,17 @@
-// components/roomsConfig.ts
-import { RoomType } from './types'
+export type RoomType = 'impuls' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether'
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-
-export const roomsConfig: Record<RoomType, {
+export interface RoomConfig {
     displayName: string
     bgCandidates: string[]
     audioFile?: string
     elementIcon?: string
-    buttonOffset: { top: string; left: string; translateY: string } // strings with % or px
+    buttonOffset: { top: string; left: string; translateY: string }
     wave?: { baseHue: number; accentHue: number; glow: number; allowEnhance?: boolean }
-}> = {
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+export const roomsConfig: Record<RoomType, RoomConfig> = {
     impuls: {
         displayName: 'Impuls',
         bgCandidates: [

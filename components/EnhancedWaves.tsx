@@ -1,10 +1,10 @@
-// components/EnhancedWaves.tsx
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { roomsConfig, RoomType } from './roomsConfig'
 
 interface EnhancedWavesProps {
-  room?: 'main' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether' | 'impuls' | string
+  room?: RoomType | string
   bars?: number
   intensity?: number
   triggerKey?: string
@@ -34,18 +34,17 @@ export default function EnhancedWaves({
   const timeoutsRef = useRef<number[]>([])
   const mountedRef = useRef(false)
   const firstFrameDoneRef = useRef(false)
-  const allowEnhanceRef = useRef(false) // only true while enhancement effects should render
+  const allowEnhanceRef = useRef(false)
 
-  // visual state
   const rotationRef = useRef(0)
-  const expansionRef = useRef(0.20)
-  const alphaRef = useRef(0.50)
+  const expansionRef = useRef(0.2)
+  const alphaRef = useRef(0.5)
   const barsRef = useRef<number[]>(Array.from({ length: bars }, () => 0.14))
 
   const targetRef = useRef({
     rotation: 0,
-    expansion: 0.20,
-    alpha: 0.50,
+    expansion: 0.2,
+    alpha: 0.5,
     bars: Array.from({ length: bars }, () => 0.14),
   })
 
@@ -55,10 +54,8 @@ export default function EnhancedWaves({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // keep canvas invisible until first controlled frame -> prevents prepaint artefacts
     canvas.style.opacity = '0'
     canvas.style.transition = 'opacity 220ms ease-out'
-
     mountedRef.current = true
     let dpr = Math.max(1, window.devicePixelRatio || 1)
 
@@ -73,17 +70,9 @@ export default function EnhancedWaves({
     resize()
     window.addEventListener('resize', resize)
 
-    const roomConfig: Record<string, { baseHue: number; accentHue: number; glow: number }> = {
-      main: { baseHue: 200, accentHue: 280, glow: 14 },
-      impuls: { baseHue: 185, accentHue: 260, glow: 26 },
-      erde: { baseHue: 120, accentHue: 45, glow: 18 },
-      wasser: { baseHue: 200, accentHue: 180, glow: 14 },
-      feuer: { baseHue: 14, accentHue: 40, glow: 18 },
-      wind: { baseHue: 210, accentHue: 150, glow: 12 },
-      aether: { baseHue: 275, accentHue: 220, glow: 16 },
-    }
-
-    const getRoomCfg = () => roomConfig[room] ?? roomConfig['main']
+    // ✅ TypeScript-safe room config
+    const roomKey = room as RoomType
+    const waveCfg = roomsConfig[roomKey]?.wave ?? { baseHue: 200, accentHue: 280, glow: 14 }
 
     const schedule = (fn: () => void, ms: number) => {
       const id = window.setTimeout(fn, ms)
@@ -91,30 +80,26 @@ export default function EnhancedWaves({
       return id
     }
 
-    // Initial visual bump — NO pulses, and keep bars below the "beam threshold".
     const initialBump = () => {
       targetRef.current = {
         rotation: 0.055,
-        expansion: 0.30,
+        expansion: 0.3,
         alpha: 0.82,
         bars: Array.from({ length: bars }, () => 0.15 + Math.random() * 0.02),
       }
-
       schedule(() => {
         if (!mountedRef.current) return
         targetRef.current = {
           rotation: 0,
-          expansion: 0.20,
-          alpha: 0.50,
+          expansion: 0.2,
+          alpha: 0.5,
           bars: Array.from({ length: bars }, () => 0.14),
         }
       }, 360)
     }
 
-    // Actual enhance pulses & effect — only invoked after first frame by user action
     const handleImpulsCore = () => {
       allowEnhanceRef.current = true
-
       for (let i = 0; i < 6; i++) {
         pulsesRef.current.push({
           radius: 0,
@@ -143,8 +128,8 @@ export default function EnhancedWaves({
         if (!mountedRef.current) return
         targetRef.current = {
           rotation: 0,
-          expansion: 0.20,
-          alpha: 0.50,
+          expansion: 0.2,
+          alpha: 0.5,
           bars: Array.from({ length: bars }, () => 0.14),
         }
         schedule(() => {
@@ -156,14 +141,11 @@ export default function EnhancedWaves({
     }
 
     const handleImpuls = () => {
-      if (!firstFrameDoneRef.current) {
-        return
-      }
+      if (!firstFrameDoneRef.current) return
       handleImpulsCore()
     }
 
     const effectiveTriggerKey = triggerButtonId ? undefined : (triggerKey ?? `${room}-activated`)
-
     let btnEl: HTMLElement | null = null
     if (triggerButtonId) {
       btnEl = document.getElementById(triggerButtonId)
@@ -175,7 +157,6 @@ export default function EnhancedWaves({
     let initialBumpScheduled = false
 
     const draw = (time: number) => {
-      const cfg = getRoomCfg()
       const w = canvas.width / dpr
       const h = canvas.height / dpr
       const cx = w / 2
@@ -191,7 +172,7 @@ export default function EnhancedWaves({
         }
       }
 
-      const ease = 0.020
+      const ease = 0.02
       rotationRef.current += (targetRef.current.rotation - rotationRef.current) * ease
       expansionRef.current += (targetRef.current.expansion - expansionRef.current) * ease
       alphaRef.current += (targetRef.current.alpha - alphaRef.current) * ease
@@ -213,11 +194,10 @@ export default function EnhancedWaves({
         p.alpha -= p.decay
         ctx.beginPath()
         ctx.arc(cx, cy, p.radius, 0, Math.PI * 2)
-        ctx.strokeStyle =
-          `hsla(${cfg.baseHue + p.colorOffset},88%,66%,${Math.max(0, p.alpha)})`
+        ctx.strokeStyle = `hsla(${waveCfg.baseHue + p.colorOffset},88%,66%,${Math.max(0, p.alpha)})`
         ctx.lineWidth = 1.6 + Math.sin(p.radius / 20) * 3.0
-        ctx.shadowColor = `hsla(${cfg.accentHue},100%,80%,${Math.max(0, p.alpha)})`
-        ctx.shadowBlur = cfg.glow * p.glowMultiplier + Math.abs(Math.sin(p.radius / 10)) * 10
+        ctx.shadowColor = `hsla(${waveCfg.accentHue},100%,80%,${Math.max(0, p.alpha)})`
+        ctx.shadowBlur = waveCfg.glow * p.glowMultiplier + Math.abs(Math.sin(p.radius / 10)) * 10
         ctx.stroke()
       })
 
@@ -235,11 +215,10 @@ export default function EnhancedWaves({
         const y2 = cy + Math.sin(angle) * outerR
 
         ctx.save()
-        ctx.strokeStyle =
-          `hsla(${cfg.baseHue + Math.sin(i * 0.5) * 30},94%,60%,0.88)`
+        ctx.strokeStyle = `hsla(${waveCfg.baseHue + Math.sin(i * 0.5) * 30},94%,60%,0.88)`
         ctx.lineWidth = 0.85 + amp * 3.6
-        ctx.shadowColor = `hsla(${cfg.accentHue},100%,78%,0.78)`
-        ctx.shadowBlur = cfg.glow * (0.85 + expansion * 0.5)
+        ctx.shadowColor = `hsla(${waveCfg.accentHue},100%,78%,0.78)`
+        ctx.shadowBlur = waveCfg.glow * (0.85 + expansion * 0.5)
         ctx.beginPath()
         ctx.moveTo(x1, y1)
         ctx.lineTo(x2, y2)
@@ -265,21 +244,14 @@ export default function EnhancedWaves({
       window.removeEventListener('resize', resize)
       if (btnEl) btnEl.removeEventListener('click', handleImpuls)
       else if (effectiveTriggerKey) window.removeEventListener(effectiveTriggerKey, handleImpuls as EventListener)
-      timeoutsRef.current.forEach((id) => window.clearTimeout(id))
+      timeoutsRef.current.forEach(id => window.clearTimeout(id))
       timeoutsRef.current = []
     }
   }, [room, bars, intensity, triggerKey, triggerButtonId])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 3 }}
-    />
-  )
+  return <canvas ref={canvasRef} className="fixed inset-0 w-full h-full pointer-events-none" style={{ zIndex: 3 }} />
 }
 
-// subtle radial beams (used only during real enhance)
 function renderRadialBeams(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, time: number) {
   const beamCount = 48
   for (let i = 0; i < beamCount; i++) {
@@ -303,7 +275,6 @@ function renderRadialBeams(ctx: CanvasRenderingContext2D, cx: number, cy: number
   }
 }
 
-// webb-like glow rings (subtle)
 function renderWebbGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, time: number) {
   ctx.save()
   ctx.globalCompositeOperation = 'lighter'

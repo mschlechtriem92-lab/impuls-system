@@ -1,11 +1,12 @@
-// components/GalaxyBackground.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
 
+export type RoomType = 'impuls' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether' | string
+
 interface RoomBackgroundProps {
-  room?: 'impuls' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether' | string
-  roomImage?: string // optional override path
+  room?: RoomType
+  roomImage?: string
 }
 
 export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBackgroundProps) {
@@ -16,7 +17,6 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
   const [impulseActive, setImpulseActive] = useState(false)
 
   useEffect(() => {
-    // Build candidate list for background image
     const candidates = roomImage
       ? [roomImage]
       : [
@@ -69,7 +69,6 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    // Particle init
     const particles: Array<{ x: number; y: number; size: number; speed: number; opacity: number }> = []
     for (let i = 0; i < 200; i++) {
       particles.push({
@@ -123,7 +122,6 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
           transformOrigin: 'center center',
         }}
       />
-
       <canvas
         ref={canvasRef}
         className={`
@@ -132,7 +130,6 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
           ${isLoaded ? 'opacity-100' : 'opacity-0'}
         `}
       />
-
       <div
         className={`
           absolute inset-0 w-full h-full
