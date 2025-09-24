@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState } from 'react'
@@ -67,9 +66,10 @@ export default function ImpulseButton({ room, onClick, size = 70 }: ImpulseButto
         bg-gradient-to-tr ${styles.gradient} ${styles.hover}
         text-white font-bold tracking-wider text-sm
         ${styles.glow} border border-white/20
-        active:scale-95 active:shadow-inner
+        active:scale-95
         transition-all duration-300 ease-out
         backdrop-blur-md overflow-hidden
+        ${isPressed ? 'scale-105' : ''}
       `}
       style={{
         width: size,
@@ -79,8 +79,11 @@ export default function ImpulseButton({ room, onClick, size = 70 }: ImpulseButto
     >
       {styles.text}
       <span
-        className={`absolute inset-0 rounded-full pointer-events-none transition-all duration-300 ${isPressed ? 'ring-2 ring-white/30 scale-95' : ''
-          }`}
+        className={`
+          absolute inset-0 rounded-full pointer-events-none
+          transition-all duration-300
+          ${isPressed ? 'ring-4 ring-white/50 scale-110 bg-white/10' : ''}
+        `}
       />
     </button>
   )

@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-
-export type RoomType = 'impuls' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether' | string
+import { RoomType } from './types'
 
 interface RoomBackgroundProps {
   room?: RoomType
   roomImage?: string
+  placeholderColor?: string
 }
 
 interface Particle {
@@ -17,14 +17,14 @@ interface Particle {
   opacity: number
 }
 
-export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBackgroundProps) {
+export default function GalaxyBackground({ room = 'impuls', roomImage, placeholderColor = 'bg-gray-900' }: RoomBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
-  const [isLoaded, setIsLoaded] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [impulseActive, setImpulseActive] = useState(false)
 
   useEffect(() => {
+    // Bildquellen
     const candidates = roomImage
       ? [roomImage]
       : [
@@ -40,7 +40,6 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
     const img = new Image()
     img.onload = () => {
       setImageLoaded(true)
-      setTimeout(() => setIsLoaded(true), 200)
       if (backgroundRef.current) {
         backgroundRef.current.style.backgroundImage = `url(${candidates[idx]})`
       }
@@ -50,9 +49,7 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
       if (idx < candidates.length) {
         img.src = candidates[idx]
       } else {
-        console.warn('[GalaxyBackground] Keine passende Hintergrunddatei gefunden für', room, candidates)
-        setImageLoaded(false)
-        setTimeout(() => setIsLoaded(true), 200)
+        console.warn('[GalaxyBackground] Kein Bild gefunden für', room)
       }
     }
     img.src = candidates[idx]
@@ -62,9 +59,9 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
       setTimeout(() => setImpulseActive(false), 3000)
     }
 
-    const eventKey = `${room}-activated`
-    window.addEventListener(eventKey, handleImpulsActivated)
+    window.addEventListener('impuls-activated', handleImpulsActivated)
 
+    // Partikel
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
@@ -88,15 +85,15 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
     let raf = 0
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      particles.forEach((particle) => {
+      particles.forEach((p) => {
         ctx.beginPath()
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(255,255,255,${particle.opacity * 0.6})`
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255,255,255,${p.opacity * 0.6})`
         ctx.fill()
-        particle.y -= particle.speed
-        if (particle.y < 0) {
-          particle.y = canvas.height
-          particle.x = Math.random() * canvas.width
+        p.y -= p.speed
+        if (p.y < 0) {
+          p.y = canvas.height
+          p.x = Math.random() * canvas.width
         }
       })
       raf = requestAnimationFrame(animate)
@@ -104,44 +101,31 @@ export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBac
     animate()
 
     return () => {
-      window.removeEventListener(eventKey, handleImpulsActivated)
+      window.removeEventListener('impuls-activated', handleImpulsActivated)
       window.removeEventListener('resize', resizeCanvas)
       if (raf) cancelAnimationFrame(raf)
     }
   }, [room, roomImage])
 
   return (
-    <div className="fixed inset-0 w-full h-full z-0">
-      <div className="absolute inset-0 w-full h-full" />
+    <div className={`fixed inset-0 w-full h-full z-0 ${placeholderColor}`}>
       <div
         ref={backgroundRef}
         className={`
           absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat
-          transition-all duration-[4000ms] ease-out
-          ${isLoaded ? 'scale-100' : 'scale-150'}
-          ${impulseActive ? 'scale-110 brightness-110' : ''}
-          ${imageLoaded ? 'opacity-100' : 'opacity-0'}
+          transition-all duration-[2000ms] ease-out
+          ${imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}
+          ${impulseActive ? 'brightness-125 scale-105' : ''}
         `}
-        style={{
-          filter: `brightness(0.7) contrast(1.1) ${impulseActive ? 'hue-rotate(15deg)' : ''}`,
-          transformOrigin: 'center center',
-        }}
+        style={{ transformOrigin: 'center center' }}
       />
       <canvas
         ref={canvasRef}
-        className={`
-          absolute inset-0 w-full h-full
-          transition-opacity duration-[4000ms] ease-out
-          ${isLoaded ? 'opacity-100' : 'opacity-0'}
-        `}
+        className={`absolute inset-0 w-full h-full transition-opacity duration-[2000ms] ease-out`}
       />
       <div
-        className={`
-          absolute inset-0 w-full h-full
-          bg-gradient-radial from-blue-500/10 via-purple-500/5 to-transparent
-          transition-all duration-[3000ms] ease-out
-          ${impulseActive ? 'opacity-100 scale-110' : 'opacity-0 scale-100'}
-        `}
+        className={`absolute inset-0 w-full h-full bg-gradient-radial from-blue-500/10 via-purple-500/5 to-transparent transition-all duration-[1000ms] ease-out ${impulseActive ? 'opacity-100 scale-110' : 'opacity-0 scale-100'
+          }`}
         style={{ transformOrigin: 'center center' }}
       />
     </div>

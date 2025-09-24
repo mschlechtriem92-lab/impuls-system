@@ -1,11 +1,9 @@
 ﻿'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useRef } from 'react'
 import GalaxyBackground from '../../components/GalaxyBackground'
 import EnhancedWaves from '../../components/EnhancedWaves'
-
-// Optional: Wenn du einen AudioPlayer hast
-// import AudioPlayer from '../../components/AudioPlayer'
+import ImpulseButton from '../../components/ImpulseButton'
 
 export default function ImpulsPage() {
     const audioRef = useRef<HTMLAudioElement>(null)
@@ -13,10 +11,12 @@ export default function ImpulsPage() {
     const handleImpulse = () => {
         if (audioRef.current) {
             audioRef.current.currentTime = 0
-            audioRef.current.play()
+            audioRef.current.play().catch(() => {
+                console.warn('Audio konnte nicht abgespielt werden. Benutzerinteraktion notwendig.')
+            })
         }
 
-        // Trigger event für GalaxyBackground
+        // Event auslösen für Hintergrund + Waves
         const event = new Event('impuls-activated')
         window.dispatchEvent(event)
     }
@@ -24,10 +24,15 @@ export default function ImpulsPage() {
     return (
         <div className="relative w-full h-screen overflow-hidden">
             {/* Hintergrund */}
-            <GalaxyBackground room="impuls" />
+            <GalaxyBackground room="impuls" placeholderColor="bg-blue-900" />
 
-            {/* Audio Player */}
-            <audio ref={audioRef} id="impuls-audio" src="/assets/audio/impuls.mp3" preload="auto" />
+            {/* Audio */}
+            <audio
+                ref={audioRef}
+                id="impuls-audio"
+                src="/assets/audio/impuls.mp3"
+                preload="auto"
+            />
 
             {/* Visualisierung */}
             <EnhancedWaves
@@ -37,15 +42,9 @@ export default function ImpulsPage() {
                 triggerButtonId="impuls-button"
             />
 
-            {/* Button zum Auslösen */}
+            {/* Button */}
             <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2">
-                <button
-                    id="impuls-button"
-                    onClick={handleImpulse}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-all"
-                >
-                    Impuls auslösen
-                </button>
+                <ImpulseButton room="impuls" size={90} onClick={handleImpulse} />
             </div>
         </div>
     )
