@@ -1,3 +1,4 @@
+// app/page.tsx  (Auszug)
 'use client'
 
 import { useRef, useState } from 'react'
@@ -19,34 +20,27 @@ export default function ImpulsPage() {
         playPromise.catch(err => console.warn("Audio konnte nicht abgespielt werden:", err))
       }
     }
+
+    window.dispatchEvent(new Event("impuls-activated"))
     setCompanionVisible(true)
   }
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black text-white">
-      <GalaxyBackground />
-      <EnhancedWaves room="main" />
+      <GalaxyBackground room="impuls" />
+      <EnhancedWaves room="impuls" />
 
-      <section className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
-        <ImpulseButton onClick={handleImpulseClick} />
+      <section className={`absolute z-20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
+        <ImpulseButton room="impuls" onClick={handleImpulseClick} />
       </section>
 
       <section className="absolute top-4 left-4 flex flex-row space-x-4 z-30">
-        <KICompanion
-          mode="main"
-          isVisible={companionVisible}
-          onToggle={setCompanionVisible}
-        />
+        <KICompanion mode="impuls" isVisible={companionVisible} onToggle={setCompanionVisible} />
       </section>
 
-      <Navigation currentRoom="main" />
+      <Navigation currentRoom="impuls" />
 
-      <audio
-        ref={audioRef}
-        src="/assets/rooms/Impuls/Impuls.mp3"
-        preload="auto"
-        className="hidden"
-      />
+      <audio ref={audioRef} src="/assets/rooms/impuls/Impuls.mp3" preload="auto" className="hidden" />
     </main>
   )
 }

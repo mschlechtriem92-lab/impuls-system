@@ -1,38 +1,53 @@
+// components/EnhancedWaves.tsx
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface EnhancedWavesProps {
-  room?: 'main' | 'erde' | 'wasser' | 'feuer' | 'luft' | 'aether' | string
+  room?: 'main' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether' | 'impuls' | string
   bars?: number
   intensity?: number
+  triggerKey?: string
+  triggerButtonId?: string
 }
 
 interface Pulse {
   radius: number
   alpha: number
-  speed?: number
-  glowMultiplier?: number
-  colorOffset?: number
+  speed: number
+  glowMultiplier: number
+  colorOffset: number
+  decay: number
 }
 
 export default function EnhancedWaves({
   room = 'main',
   bars = 96,
   intensity = 1.0,
-}: EnhancedWavesProps) {
+  triggerKey,
+  triggerButtonId,
+}: EnhancedWavesProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const animationRef = useRef<number | null>(null)
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const freqDataRef = useRef<Uint8Array | null>(null)
-
-  const [targetExpansion, setTargetExpansion] = useState(0.3)
-  const [targetAlpha, setTargetAlpha] = useState(0.4)
-
-  const expansionRef = useRef(0.3)
-  const alphaRef = useRef(0.4)
   const pulsesRef = useRef<Pulse[]>([])
+  const dynamicBarsRef = useRef<number[] | null>(null)
+  const timeoutsRef = useRef<number[]>([])
+  const mountedRef = useRef(false)
+  const firstFrameDoneRef = useRef(false)
+  const allowEnhanceRef = useRef(false) // only true while enhancement effects should render
+
+  // visual state
+  const rotationRef = useRef(0)
+  const expansionRef = useRef(0.20)
+  const alphaRef = useRef(0.50)
+  const barsRef = useRef<number[]>(Array.from({ length: bars }, () => 0.14))
+
+  const targetRef = useRef({
+    rotation: 0,
+    expansion: 0.20,
+    alpha: 0.50,
+    bars: Array.from({ length: bars }, () => 0.14),
+  })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -40,6 +55,11 @@ export default function EnhancedWaves({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
+    // keep canvas invisible until first controlled frame -> prevents prepaint artefacts
+    canvas.style.opacity = '0'
+    canvas.style.transition = 'opacity 220ms ease-out'
+
+    mountedRef.current = true
     let dpr = Math.max(1, window.devicePixelRatio || 1)
 
     const resize = () => {
@@ -54,126 +74,172 @@ export default function EnhancedWaves({
     window.addEventListener('resize', resize)
 
     const roomConfig: Record<string, { baseHue: number; accentHue: number; glow: number }> = {
-      main: { baseHue: 200, accentHue: 280, glow: 20 },
+      main: { baseHue: 200, accentHue: 280, glow: 14 },
+      impuls: { baseHue: 185, accentHue: 260, glow: 26 },
       erde: { baseHue: 120, accentHue: 45, glow: 18 },
-      wasser: { baseHue: 200, accentHue: 180, glow: 18 },
-      feuer: { baseHue: 14, accentHue: 40, glow: 22 },
-      luft: { baseHue: 210, accentHue: 150, glow: 16 },
-      aether: { baseHue: 275, accentHue: 220, glow: 20 },
+      wasser: { baseHue: 200, accentHue: 180, glow: 14 },
+      feuer: { baseHue: 14, accentHue: 40, glow: 18 },
+      wind: { baseHue: 210, accentHue: 150, glow: 12 },
+      aether: { baseHue: 275, accentHue: 220, glow: 16 },
     }
-    const cfg = roomConfig[room] ?? roomConfig['main']
 
-    // Audio Setup
-    const audioEl = document.getElementById(`audio-${room}`) as HTMLAudioElement | null
-    if (audioEl) {
-      const AuCtx = (window as any).AudioContext || (window as any).webkitAudioContext
-      if (AuCtx) {
-        const audioCtx = new AuCtx() as AudioContext
-        audioCtxRef.current = audioCtx
-        const source = audioCtx.createMediaElementSource(audioEl)
-        const analyser = audioCtx.createAnalyser()
-        analyser.fftSize = 512 // höhere Auflösung für organische Frequenzanimation
-        source.connect(analyser)
-        analyser.connect(audioCtx.destination)
-        analyserRef.current = analyser
-        freqDataRef.current = new Uint8Array(analyser.frequencyBinCount)
+    const getRoomCfg = () => roomConfig[room] ?? roomConfig['main']
+
+    const schedule = (fn: () => void, ms: number) => {
+      const id = window.setTimeout(fn, ms)
+      timeoutsRef.current.push(id)
+      return id
+    }
+
+    // Initial visual bump — NO pulses, and keep bars below the "beam threshold".
+    const initialBump = () => {
+      targetRef.current = {
+        rotation: 0.055,
+        expansion: 0.30,
+        alpha: 0.82,
+        bars: Array.from({ length: bars }, () => 0.15 + Math.random() * 0.02),
       }
+
+      schedule(() => {
+        if (!mountedRef.current) return
+        targetRef.current = {
+          rotation: 0,
+          expansion: 0.20,
+          alpha: 0.50,
+          bars: Array.from({ length: bars }, () => 0.14),
+        }
+      }, 360)
     }
 
-    const handleClick = () => {
-      if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume().catch(() => { })
+    // Actual enhance pulses & effect — only invoked after first frame by user action
+    const handleImpulsCore = () => {
+      allowEnhanceRef.current = true
 
-      // Mehrere dynamische Pulswellen gleichzeitig
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) {
         pulsesRef.current.push({
           radius: 0,
-          alpha: 1,
-          speed: 2 + Math.random() * 3,
-          glowMultiplier: 1 + Math.random(),
+          alpha: 1.0,
+          speed: 1.6 + Math.random() * 0.9,
+          glowMultiplier: 0.95 + Math.random() * 0.6,
           colorOffset: Math.random() * 60,
+          decay: 0.004 + Math.random() * 0.008,
         })
       }
 
-      // Temporäre Verstärkung der Frequenzen
-      setTargetExpansion(1)
-      setTargetAlpha(1)
-      setTimeout(() => {
-        setTargetExpansion(0.3)
-        setTargetAlpha(0.4)
-      }, 4000)
-    }
-    window.addEventListener('click', handleClick)
+      if (!dynamicBarsRef.current) {
+        dynamicBarsRef.current = Array.from({ length: bars }, () => 0.28 + Math.random() * 0.52)
+      } else {
+        dynamicBarsRef.current = dynamicBarsRef.current.map(v => Math.max(v, 0.28 + Math.random() * 0.52))
+      }
 
-    let rotation = 0
+      targetRef.current = {
+        rotation: rotationRef.current + Math.PI * 1.12,
+        expansion: 0.98,
+        alpha: 0.96,
+        bars: Array.from({ length: bars }, () => 0.36 + Math.random() * 0.44),
+      }
+
+      schedule(() => {
+        if (!mountedRef.current) return
+        targetRef.current = {
+          rotation: 0,
+          expansion: 0.20,
+          alpha: 0.50,
+          bars: Array.from({ length: bars }, () => 0.14),
+        }
+        schedule(() => {
+          pulsesRef.current = []
+          dynamicBarsRef.current = null
+          allowEnhanceRef.current = false
+        }, 900)
+      }, 4500)
+    }
+
+    const handleImpuls = () => {
+      if (!firstFrameDoneRef.current) {
+        return
+      }
+      handleImpulsCore()
+    }
+
+    const effectiveTriggerKey = triggerButtonId ? undefined : (triggerKey ?? `${room}-activated`)
+
+    let btnEl: HTMLElement | null = null
+    if (triggerButtonId) {
+      btnEl = document.getElementById(triggerButtonId)
+      if (btnEl) btnEl.addEventListener('click', handleImpuls)
+    } else if (effectiveTriggerKey) {
+      window.addEventListener(effectiveTriggerKey, handleImpuls as EventListener)
+    }
+
+    let initialBumpScheduled = false
 
     const draw = (time: number) => {
+      const cfg = getRoomCfg()
       const w = canvas.width / dpr
       const h = canvas.height / dpr
       const cx = w / 2
       const cy = h / 2
       ctx.clearRect(0, 0, w, h)
 
-      // Smooth Übergänge
-      expansionRef.current += (targetExpansion - expansionRef.current) * 0.05
-      alphaRef.current += (targetAlpha - alphaRef.current) * 0.05
-      const expansion = expansionRef.current
-      const alpha = alphaRef.current
-
-      const minDim = Math.min(w, h)
-      const baseRadius = minDim * (0.18 + 0.04 * expansion)
-
-      // Frequenzdaten
-      let barsData: number[] = []
-      if (analyserRef.current) {
-        const analyser = analyserRef.current
-        if (!freqDataRef.current || freqDataRef.current.length !== analyser.frequencyBinCount) {
-          freqDataRef.current = new Uint8Array(analyser.frequencyBinCount)
+      if (!firstFrameDoneRef.current) {
+        firstFrameDoneRef.current = true
+        canvas.style.opacity = '1'
+        if (!initialBumpScheduled) {
+          initialBumpScheduled = true
+          schedule(() => initialBump(), 40)
         }
-        const tempArray = new Uint8Array(freqDataRef.current.length)
-        analyser.getByteFrequencyData(tempArray)
-        freqDataRef.current.set(tempArray)
-
-        barsData = Array.from({ length: bars }, (_, i) => {
-          const idx = Math.floor((i / bars) * freqDataRef.current!.length)
-          return freqDataRef.current![idx] / 255
-        })
       }
 
-      // Pulswellen rendern (organisch & dynamisch)
-      pulsesRef.current.forEach((p, i) => {
-        p.radius += p.speed ?? 2.5
-        p.alpha -= 0.012
-        if (p.alpha <= 0) pulsesRef.current.splice(i, 1)
-        else {
-          ctx.beginPath()
-          ctx.arc(cx, cy, p.radius, 0, Math.PI * 2)
-          ctx.strokeStyle = `hsla(${cfg.baseHue + (p.colorOffset ?? 0)},100%,60%,${p.alpha * 0.5})`
-          ctx.lineWidth = 2 + Math.sin(p.radius / 20) * 4
-          ctx.shadowColor = `hsla(${cfg.accentHue},100%,80%,${p.alpha * 0.8})`
-          ctx.shadowBlur = (cfg.glow * (p.glowMultiplier ?? 1)) + Math.sin(p.radius / 10) * 20
-          ctx.stroke()
-        }
+      const ease = 0.020
+      rotationRef.current += (targetRef.current.rotation - rotationRef.current) * ease
+      expansionRef.current += (targetRef.current.expansion - expansionRef.current) * ease
+      alphaRef.current += (targetRef.current.alpha - alphaRef.current) * ease
+
+      for (let i = 0; i < bars; i++) {
+        const tVal = targetRef.current.bars[i] ?? 0.14
+        barsRef.current[i] = (barsRef.current[i] ?? 0.14) + (tVal - (barsRef.current[i] ?? 0.14)) * ease
+      }
+
+      const expansion = expansionRef.current
+      const alpha = alphaRef.current
+      const rotation = rotationRef.current
+      const minDim = Math.min(w, h)
+      const baseRadius = minDim * (0.12 + 0.045 * expansion)
+
+      pulsesRef.current = pulsesRef.current.filter(p => p.alpha > 0)
+      pulsesRef.current.forEach(p => {
+        p.radius += p.speed
+        p.alpha -= p.decay
+        ctx.beginPath()
+        ctx.arc(cx, cy, p.radius, 0, Math.PI * 2)
+        ctx.strokeStyle =
+          `hsla(${cfg.baseHue + p.colorOffset},88%,66%,${Math.max(0, p.alpha)})`
+        ctx.lineWidth = 1.6 + Math.sin(p.radius / 20) * 3.0
+        ctx.shadowColor = `hsla(${cfg.accentHue},100%,80%,${Math.max(0, p.alpha)})`
+        ctx.shadowBlur = cfg.glow * p.glowMultiplier + Math.abs(Math.sin(p.radius / 10)) * 10
+        ctx.stroke()
       })
 
-      // Frequenz-Bars mit organischer Oszillation
-      ctx.globalAlpha = alpha
       const gap = (Math.PI * 2) / bars
+      ctx.globalAlpha = Math.max(0.06, alpha)
       for (let i = 0; i < bars; i++) {
-        const angle = i * gap + rotation + Math.sin(time / 1000 + i) * 0.01
-        const amp = (barsData[i] || 0) * intensity + 0.25 * Math.sin(time / 300 + i)
-        const innerR = baseRadius * (0.65 + 0.05 * Math.sin(time / 500 + i))
-        const outerR = innerR + amp * (minDim * (0.18 + 0.15 * expansion))
-
+        const angle = i * gap + rotation + Math.sin(time / 1000 + i) * 0.013
+        const barSource = dynamicBarsRef.current ? (dynamicBarsRef.current[i] ?? 0) : (barsRef.current[i] ?? 0.14)
+        const amp = (barSource * intensity + 0.08 * Math.sin(time / 300 + i)) * 1.05
+        const innerR = baseRadius * (0.64 + 0.045 * Math.sin(time / 450 + i))
+        const outerR = innerR + amp * (minDim * (0.14 + 0.095 * expansion))
         const x1 = cx + Math.cos(angle) * innerR
         const y1 = cy + Math.sin(angle) * innerR
         const x2 = cx + Math.cos(angle) * outerR
         const y2 = cy + Math.sin(angle) * outerR
 
         ctx.save()
-        ctx.strokeStyle = `hsla(${cfg.baseHue + amp * 80 + Math.sin(i) * 20},100%,60%,0.9)`
-        ctx.lineWidth = 1 + amp * 6
-        ctx.shadowColor = `hsla(${cfg.accentHue},100%,70%,0.7)`
-        ctx.shadowBlur = cfg.glow * (1 + expansion)
+        ctx.strokeStyle =
+          `hsla(${cfg.baseHue + Math.sin(i * 0.5) * 30},94%,60%,0.88)`
+        ctx.lineWidth = 0.85 + amp * 3.6
+        ctx.shadowColor = `hsla(${cfg.accentHue},100%,78%,0.78)`
+        ctx.shadowBlur = cfg.glow * (0.85 + expansion * 0.5)
         ctx.beginPath()
         ctx.moveTo(x1, y1)
         ctx.lineTo(x2, y2)
@@ -182,20 +248,27 @@ export default function EnhancedWaves({
       }
       ctx.globalAlpha = 1
 
-      rotation += 0.003
+      const barsActive = (dynamicBarsRef.current ?? barsRef.current).some(v => v > 0.18)
+      if (allowEnhanceRef.current && barsActive) {
+        renderRadialBeams(ctx, cx, cy, baseRadius, time)
+        renderWebbGlow(ctx, cx, cy, baseRadius, time)
+      }
+
       animationRef.current = requestAnimationFrame(draw)
     }
 
     animationRef.current = requestAnimationFrame(draw)
-    setTargetAlpha(0.4)
-    setTargetExpansion(0.3)
 
     return () => {
+      mountedRef.current = false
       if (animationRef.current) cancelAnimationFrame(animationRef.current)
       window.removeEventListener('resize', resize)
-      window.removeEventListener('click', handleClick)
+      if (btnEl) btnEl.removeEventListener('click', handleImpuls)
+      else if (effectiveTriggerKey) window.removeEventListener(effectiveTriggerKey, handleImpuls as EventListener)
+      timeoutsRef.current.forEach((id) => window.clearTimeout(id))
+      timeoutsRef.current = []
     }
-  }, [room, bars, intensity])
+  }, [room, bars, intensity, triggerKey, triggerButtonId])
 
   return (
     <canvas
@@ -204,4 +277,45 @@ export default function EnhancedWaves({
       style={{ zIndex: 3 }}
     />
   )
+}
+
+// subtle radial beams (used only during real enhance)
+function renderRadialBeams(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, time: number) {
+  const beamCount = 48
+  for (let i = 0; i < beamCount; i++) {
+    const angle = (Math.PI * 2 * i) / beamCount + Math.sin(time / 500 + i) * 0.002
+    const length = radius * 0.52 + Math.sin(time / 120 + i) * radius * 0.24
+    const x1 = cx + Math.cos(angle) * radius
+    const y1 = cy + Math.sin(angle) * radius
+    const x2 = cx + Math.cos(angle) * (radius + length)
+    const y2 = cy + Math.sin(angle) * (radius + length)
+
+    ctx.save()
+    ctx.strokeStyle = `hsla(${185 + Math.sin(i) * 28}, 78%, 74%, 0.72)`
+    ctx.lineWidth = 0.98 + Math.sin(time / 200 + i) * 0.6
+    ctx.shadowColor = `hsla(260, 80%, 86%, 0.62)`
+    ctx.shadowBlur = 14
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+    ctx.restore()
+  }
+}
+
+// webb-like glow rings (subtle)
+function renderWebbGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, radius: number, time: number) {
+  ctx.save()
+  ctx.globalCompositeOperation = 'lighter'
+  for (let i = 0; i < 6; i++) {
+    const r = radius + i * 14 + Math.sin(time / 300 + i) * 5
+    ctx.beginPath()
+    ctx.arc(cx, cy, r, 0, Math.PI * 2)
+    ctx.strokeStyle = `hsla(185, 78%, ${58 + i * 5}%, ${0.14 + i * 0.01})`
+    ctx.lineWidth = 1.6 + Math.sin(time / 100 + i) * 0.9
+    ctx.shadowColor = `hsla(255, 78%, 88%, 0.38)`
+    ctx.shadowBlur = 12 + i * 5
+    ctx.stroke()
+  }
+  ctx.restore()
 }

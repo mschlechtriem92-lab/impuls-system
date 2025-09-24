@@ -1,19 +1,17 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import ErdeBackground from '../../components/ErdeBackground'
-import ErdeSphere from '../../components/ErdeSphere'
-import ErdeImpulseButton from '../../components/ErdeImpulseButton'
-import Navigation from '../../components/Navigation'
-import KICompanion from '../../components/KICompanion'
-import EnhancedWaves from '../../components/EnhancedWaves'
+import Navigation from '@/components/Navigation'
+import KICompanion from '@/components/KICompanion'
+import ImpulseButton from '@/components/ImpulseButton'
+import GalaxyBackground from '@/components/GalaxyBackground'
+import EnhancedWaves from '@/components/EnhancedWaves'
 
 export default function ErdePage() {
-  const [companionVisible, setCompanionVisible] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const [companionVisible, setCompanionVisible] = useState(false)
 
   const handleImpulseClick = () => {
-    // Audio starten
     if (audioRef.current) {
       audioRef.current.currentTime = 0
       const playPromise = audioRef.current.play()
@@ -21,33 +19,21 @@ export default function ErdePage() {
         playPromise.catch(err => console.warn("Audio konnte nicht abgespielt werden:", err))
       }
     }
-    // KI-Begleiter öffnen
+
+    window.dispatchEvent(new Event('erde-activated'))
     setCompanionVisible(true)
   }
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black text-white">
-      {/* Hintergrund + Partikel */}
-      <ErdeBackground />
-
-      {/* Frequenzanimation für Erde */}
+      <GalaxyBackground roomImage="/assets/rooms/erde/Erde.jpg" />
       <EnhancedWaves room="erde" />
 
-      {/* Navigation */}
-      <Navigation currentRoom="erde" />
-
-      {/* Kugel */}
-      <section className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-        <ErdeSphere />
+      <section className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+        <ImpulseButton room="erde" onClick={handleImpulseClick} />
       </section>
 
-      {/* Impuls-Button */}
-      <section className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/3 pointer-events-auto z-20">
-        <ErdeImpulseButton onClick={handleImpulseClick} />
-      </section>
-
-      {/* KI-Begleiter Erde horizontal */}
-      <section className="absolute top-4 left-4 z-30">
+      <section className="absolute top-4 left-4 flex flex-row space-x-4 z-30">
         <KICompanion
           mode="erde"
           isVisible={companionVisible}
@@ -55,7 +41,8 @@ export default function ErdePage() {
         />
       </section>
 
-      {/* Audio Erde */}
+      <Navigation currentRoom="erde" />
+
       <audio
         ref={audioRef}
         src="/assets/rooms/erde/Erde.mp3"

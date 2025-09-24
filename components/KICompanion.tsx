@@ -1,25 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-
-export type ArchetypeMode = 'main' | 'erde' | 'wasser' | 'feuer' | 'luft' | 'aether'
+import { RoomType } from './types'
 
 interface KICompanionProps {
-  mode: ArchetypeMode
+  mode: RoomType
   isVisible?: boolean
   onToggle?: (visible: boolean) => void
 }
 
 const prompts: Record<
-  ArchetypeMode,
+  RoomType,
   { welcome: string; reflection: string; impulse: string; color: string; hoverColor: string }
 > = {
-  main: {
-    welcome: 'Willkommen im Impuls-Raum. Welcher Impuls ruft dich?',
-    reflection: 'Was bewegt dich in diesem Moment?',
-    impulse: 'Welchen Raum möchtest du betreten?',
-    color: 'from-blue-600/80 to-purple-700/80',
-    hoverColor: 'hover:from-blue-500/80 hover:to-purple-600/80',
+  aether: {
+    welcome: 'Willkommen im Raum Äther. Was verbindet dich?',
+    reflection: 'Welche Visionen spürst du?',
+    impulse: 'Welchen Impuls möchtest du manifestieren?',
+    color: 'from-purple-600/80 to-pink-500/80',
+    hoverColor: 'hover:from-purple-500/80 hover:to-pink-400/80',
   },
   erde: {
     welcome: 'Willkommen im Raum Erde. Was trägt dich heute?',
@@ -31,7 +30,7 @@ const prompts: Record<
   wasser: {
     welcome: 'Willkommen im Raum Wasser. Welche Strömungen spürst du?',
     reflection: 'Was fließt gerade in dir?',
-    impulse: 'Welchen Impuls möchtest du folgen?',
+    impulse: 'Welchem Impuls möchtest du folgen?',
     color: 'from-cyan-600/80 to-blue-500/80',
     hoverColor: 'hover:from-cyan-500/80 hover:to-blue-400/80',
   },
@@ -42,19 +41,20 @@ const prompts: Record<
     color: 'from-red-600/80 to-orange-500/80',
     hoverColor: 'hover:from-red-500/80 hover:to-orange-400/80',
   },
-  luft: {
-    welcome: 'Willkommen im Raum Luft. Welche Gedanken schweben?',
+  wind: {
+    welcome: 'Willkommen im Raum Wind. Welche Gedanken schweben?',
     reflection: 'Wohin trägt dich der Wind?',
-    impulse: 'Welchen Impuls möchtest du folgen?',
+    impulse: 'Welchem Impuls möchtest du folgen?',
     color: 'from-sky-600/80 to-indigo-500/80',
     hoverColor: 'hover:from-sky-500/80 hover:to-indigo-400/80',
   },
-  aether: {
-    welcome: 'Willkommen im Raum Äther. Was verbindet dich?',
-    reflection: 'Welche Visionen spürst du?',
-    impulse: 'Welchen Impuls möchtest du manifestieren?',
-    color: 'from-purple-600/80 to-pink-500/80',
-    hoverColor: 'hover:from-purple-500/80 hover:to-pink-400/80',
+
+  impuls: {
+    welcome: 'Willkommen im Impuls-Raum. Welcher Impuls ruft dich?',
+    reflection: 'Was bewegt dich in diesem Moment?',
+    impulse: 'Welchen Raum möchtest du betreten?',
+    color: 'from-blue-600/80 to-purple-700/80',
+    hoverColor: 'hover:from-blue-500/80 hover:to-purple-600/80',
   },
 }
 
@@ -72,7 +72,6 @@ export default function KICompanion({ mode, isVisible = true, onToggle }: KIComp
 
   return (
     <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center space-y-2 max-w-md w-full px-2">
-      {/* Toggle Button */}
       {!onToggle && (
         <button
           onClick={handleToggle}
@@ -82,7 +81,6 @@ export default function KICompanion({ mode, isVisible = true, onToggle }: KIComp
         </button>
       )}
 
-      {/* Companion Window */}
       {visible && (
         <div className="w-full bg-black/50 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col space-y-3 animate-in slide-in-from-top duration-300">
           <p className="text-white/90 text-sm">{currentPrompts.welcome}</p>

@@ -1,37 +1,61 @@
+// components/GalaxyBackground.tsx
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
 
 interface RoomBackgroundProps {
-  roomImage?: string // optional, Standard auf Impuls
+  room?: 'impuls' | 'erde' | 'wasser' | 'feuer' | 'wind' | 'aether' | string
+  roomImage?: string // optional override path
 }
 
-export default function RoomBackground({ roomImage = '/assets/rooms/Impuls/Impuls.jpg' }: RoomBackgroundProps) {
+export default function GalaxyBackground({ room = 'impuls', roomImage }: RoomBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const backgroundRef = useRef<HTMLDivElement>(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const [impulseActive, setImpulseActive] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [impulseActive, setImpulseActive] = useState(false)
 
   useEffect(() => {
+    // Build candidate list for background image
+    const candidates = roomImage
+      ? [roomImage]
+      : [
+        `/assets/rooms/${room}/${room}.jpg`,
+        `/assets/rooms/${room}/${room}.png`,
+        `/assets/rooms/${room}/${room}-Raum.jpg`,
+        `/assets/rooms/${room}/${room}-Raum.png`,
+        `/assets/rooms/${room}/${capitalize(room)}.jpg`,
+        `/assets/rooms/${room}/${capitalize(room)}.png`,
+      ]
+
+    let idx = 0
     const img = new Image()
     img.onload = () => {
       setImageLoaded(true)
       setTimeout(() => setIsLoaded(true), 200)
+      if (backgroundRef.current) {
+        backgroundRef.current.style.backgroundImage = `url(${candidates[idx]})`
+      }
     }
     img.onerror = () => {
-      console.warn('[RoomBackground] Bild konnte nicht geladen werden:', roomImage)
-      setImageLoaded(false)
-      setTimeout(() => setIsLoaded(true), 200)
+      idx++
+      if (idx < candidates.length) {
+        img.src = candidates[idx]
+      } else {
+        console.warn('[GalaxyBackground] Keine passende Hintergrunddatei gefunden für', room, candidates)
+        setImageLoaded(false)
+        setTimeout(() => setIsLoaded(true), 200)
+      }
     }
-    img.src = roomImage
+    img.src = candidates[idx]
 
     const handleImpulsActivated = () => {
       setImpulseActive(true)
       setTimeout(() => setImpulseActive(false), 3000)
     }
 
-    window.addEventListener('impuls-activated', handleImpulsActivated)
+    const eventKey = `${room}-activated`
+    window.addEventListener(eventKey, handleImpulsActivated)
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -45,18 +69,19 @@ export default function RoomBackground({ roomImage = '/assets/rooms/Impuls/Impul
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    // Partikel-Setup
+    // Particle init
     const particles: Array<{ x: number; y: number; size: number; speed: number; opacity: number }> = []
     for (let i = 0; i < 200; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
         size: Math.random() * 2 + 0.5,
         speed: Math.random() * 0.5 + 0.1,
         opacity: Math.random() * 0.8 + 0.2,
       })
     }
 
+    let raf = 0
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       particles.forEach((particle) => {
@@ -70,29 +95,20 @@ export default function RoomBackground({ roomImage = '/assets/rooms/Impuls/Impul
           particle.x = Math.random() * canvas.width
         }
       })
-      requestAnimationFrame(animate)
+      raf = requestAnimationFrame(animate)
     }
     animate()
 
     return () => {
-      window.removeEventListener('impuls-activated', handleImpulsActivated)
+      window.removeEventListener(eventKey, handleImpulsActivated)
       window.removeEventListener('resize', resizeCanvas)
+      if (raf) cancelAnimationFrame(raf)
     }
-  }, [roomImage])
+  }, [room, roomImage])
 
   return (
     <div className="fixed inset-0 w-full h-full z-0">
-      {/* Fallback-Gradient */}
-      <div
-        className="absolute inset-0 w-full h-full"
-        style={{
-          background: imageLoaded
-            ? 'transparent'
-            : 'radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%)',
-        }}
-      />
-
-      {/* Hintergrundbild mit Start-Zoom */}
+      <div className="absolute inset-0 w-full h-full" />
       <div
         ref={backgroundRef}
         className={`
@@ -103,13 +119,11 @@ export default function RoomBackground({ roomImage = '/assets/rooms/Impuls/Impul
           ${imageLoaded ? 'opacity-100' : 'opacity-0'}
         `}
         style={{
-          backgroundImage: `url(${roomImage})`,
           filter: `brightness(0.7) contrast(1.1) ${impulseActive ? 'hue-rotate(15deg)' : ''}`,
           transformOrigin: 'center center',
         }}
       />
 
-      {/* Partikel */}
       <canvas
         ref={canvasRef}
         className={`
@@ -119,7 +133,6 @@ export default function RoomBackground({ roomImage = '/assets/rooms/Impuls/Impul
         `}
       />
 
-      {/* Sanfte Lichtüberlagerung */}
       <div
         className={`
           absolute inset-0 w-full h-full
@@ -131,4 +144,8 @@ export default function RoomBackground({ roomImage = '/assets/rooms/Impuls/Impul
       />
     </div>
   )
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
